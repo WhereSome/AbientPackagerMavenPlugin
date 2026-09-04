@@ -1,0 +1,21 @@
+[Unit]
+After=syslog.target network.target
+
+[Service]
+Type=forking
+WorkingDirectory=/gqtian/jarapps/qweasd-1999
+ExecStart=/gqtian/jarapps/qweasd-1999/bin/daemon.sh start
+ExecStop=/gqtian/jarapps/qweasd-1999/bin/daemon.sh stop
+ExecReload=/gqtian/jarapps/qweasd-1999/bin/daemon.sh restart 
+
+User=root
+Group=root
+UMask=0002
+Restart=always
+RestartSec=300
+SuccessExitStatus=143
+LimitNOFILE=26384
+LimitNPROC=26384
+
+[Install]
+WantedBy=multi-user.target
