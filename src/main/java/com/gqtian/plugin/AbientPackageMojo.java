@@ -39,6 +39,14 @@ public class AbientPackageMojo extends AbstractMojo {
     @Parameter(property = "abient.skip", defaultValue = "false")
     private boolean skip;
 
+    /**
+     * 部署包内的根目录名称，默认使用工程的 artifactId (例如 HrLiteBackend)。
+     * 解压时会直接解压到该同名目录下，防止文件散落污染当前目录。
+     * 若配置为空字符串 ""，则所有文件直接平铺放置在 zip 根目录下。
+     */
+    @Parameter(property = "abient.baseDirectory", defaultValue = "${project.artifactId}")
+    private String baseDirectory;
+
     @Override
     public void execute() throws MojoExecutionException {
         if (skip) {
@@ -101,10 +109,15 @@ public class AbientPackageMojo extends AbstractMojo {
         archiver.setDefaultFileMode(0644);
         archiver.setDefaultDirectoryMode(0755);
 
+        // 计算顶层根目录前缀（默认 HrLiteBackend/）
+        String rootPrefix = (baseDirectory == null || baseDirectory.trim().isEmpty())
+                ? ""
+                : (baseDirectory.trim().endsWith("/") ? baseDirectory.trim() : baseDirectory.trim() + "/");
+
         // A. 添加主程序 JAR 包
         File jarFile = new File(targetDir, finalName + ".jar");
         if (jarFile.exists()) {
-            archiver.addFile(jarFile, jarFile.getName(), 0644);
+            archiver.addFile(jarFile, rootPrefix + jarFile.getName(), 0644);
             getLog().info(String.format("[%s] 添加应用主程序: %s", osType, jarFile.getName()));
         } else {
             getLog().warn(String.format("[%s] 未在 target 找到主程序 JAR: %s", osType, jarFile.getName()));
@@ -113,7 +126,7 @@ public class AbientPackageMojo extends AbstractMojo {
         // B. 添加操作系统运维脚本（.sh 设置为 0755，其他为 0644）
         File osScriptDir = new File(tempScriptsDir, "scripts/" + osType);
         if (osScriptDir.exists()) {
-            addDirectoryWithPermissions(archiver, osScriptDir, "");
+            addDirectoryWithPermissions(archiver, osScriptDir, rootPrefix);
             getLog().info(String.format("[%s] 注入并赋予 0755 权限的运维脚本", osType));
         } else {
             getLog().warn(String.format("[%s] 未找到对应的脚本资源目录: %s", osType, osScriptDir.getAbsolutePath()));
@@ -127,31 +140,31 @@ public class AbientPackageMojo extends AbstractMojo {
                             && !name.equals("git.properties"));
             if (configFiles != null) {
                 for (File cfg : configFiles) {
-                    archiver.addFile(cfg, "config/" + cfg.getName(), 0644);
+                    archiver.addFile(cfg, rootPrefix + "config/" + cfg.getName(), 0644);
                 }
             }
 
             // 如果有 git.properties，放置在部署包根目录
             File gitProperties = new File(classesDir, "git.properties");
             if (gitProperties.exists()) {
-                archiver.addFile(gitProperties, "git.properties", 0644);
+                archiver.addFile(gitProperties, rootPrefix + "git.properties", 0644);
             }
         }
 
         // D. 添加数据库迁移与文档 (如果存在)
         File dbDir = new File(project.getBasedir(), "src/main/resources/db");
         if (dbDir.exists()) {
-            addDirectoryWithPermissions(archiver, dbDir, "db");
+            addDirectoryWithPermissions(archiver, dbDir, rootPrefix + "db");
         }
 
         File docsDir = new File(project.getBasedir(), "docs");
         if (docsDir.exists()) {
-            addDirectoryWithPermissions(archiver, docsDir, "docs");
+            addDirectoryWithPermissions(archiver, docsDir, rootPrefix + "docs");
         }
 
         File dockerDir = new File(project.getBasedir(), "docker");
         if (dockerDir.exists()) {
-            addDirectoryWithPermissions(archiver, dockerDir, "docker");
+            addDirectoryWithPermissions(archiver, dockerDir, rootPrefix + "docker");
         }
 
         // E. 收集根目录的 README、CHANGELOG
@@ -159,7 +172,7 @@ public class AbientPackageMojo extends AbstractMojo {
         File[] docFiles = baseDir.listFiles((dir, name) -> name.startsWith("README") || name.startsWith("CHANGELOG"));
         if (docFiles != null) {
             for (File doc : docFiles) {
-                archiver.addFile(doc, doc.getName(), 0644);
+                archiver.addFile(doc, rootPrefix + doc.getName(), 0644);
             }
         }
 
