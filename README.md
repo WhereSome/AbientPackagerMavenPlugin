@@ -120,7 +120,7 @@ mvn clean install
             <plugin>
                 <groupId>com.github.WhereSome</groupId>
                 <artifactId>AbientPackagerMavenPlugin</artifactId>
-                <version>1.0.0</version>
+                <version>1.1.0</version>
                 <executions>
                     <execution>
                         <goals>
@@ -171,7 +171,7 @@ mvn clean install
            <plugin>
                <groupId>com.github.WhereSome</groupId>
                <artifactId>AbientPackagerMavenPlugin</artifactId>
-               <version>1.0.0</version>
+               <version>1.1.0</version>
                <executions>
                    <execution>
                        <goals>
